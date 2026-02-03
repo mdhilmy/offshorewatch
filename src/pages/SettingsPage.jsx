@@ -205,7 +205,7 @@ const SettingsPage = () => {
       <Card title="About">
         <div className="space-y-2 text-sm text-gray-600">
           <p><strong>OffshoreWatch</strong> — Global Offshore Operations Weather & Safety Planning Platform</p>
-          <p>Version 1.0.0</p>
+          <p>Version 1.1.0</p>
           <p className="text-xs">Data sources: Open-Meteo, NOAA NHC, USGS, NDBC, NOAA CO-OPS</p>
           <p className="text-xs text-gray-400 mt-3">Built with React, Vite, Tailwind CSS, Chart.js, and Leaflet</p>
         </div>

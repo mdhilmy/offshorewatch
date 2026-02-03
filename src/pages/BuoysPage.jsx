@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { useApp } from '../context/AppContext';
 import { useBuoyData } from '../hooks/useBuoyData';
+import { useUnits } from '../hooks/useUnits';
 import { getNdbcStations } from '../services/api/ndbcBuoyService';
 import { formatDateTime, formatRelativeTime } from '../utils/dateUtils';
 import { Card } from '../components/common/Card';
@@ -24,6 +25,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 const BuoysPage = () => {
   const { state } = useApp();
+  const { formatWave, formatWindMs, formatTemp, formatPressure, getWaveUnit, getWindUnit, getTempUnit } = useUnits();
   const stations = useMemo(() => getNdbcStations(state.currentRegion), [state.currentRegion]);
   const [selectedStation, setSelectedStation] = useState(stations[0]?.id || '42001');
 
@@ -84,85 +86,57 @@ const BuoysPage = () => {
             <ObsCard
               icon={<Waves className="w-4 h-4 text-blue-500" />}
               label="Wave Height"
-              value={data.latest.waveHeight?.toFixed(1)}
-              unit="m"
+              formatted={formatWave(data.latest.waveHeight)}
             />
             <ObsCard
               icon={<Waves className="w-4 h-4 text-purple-500" />}
               label="Dom. Period"
-              value={data.latest.dominantPeriod?.toFixed(0)}
-              unit="s"
+              formatted={data.latest.dominantPeriod != null ? `${data.latest.dominantPeriod.toFixed(0)} s` : 'N/A'}
             />
             <ObsCard
               icon={<Wind className="w-4 h-4 text-green-500" />}
               label="Wind Speed"
-              value={data.latest.windSpeed?.toFixed(1)}
-              unit="m/s"
+              formatted={formatWindMs(data.latest.windSpeed)}
             />
             <ObsCard
               icon={<Wind className="w-4 h-4 text-amber-500" />}
               label="Wind Gusts"
-              value={data.latest.windGusts?.toFixed(1)}
-              unit="m/s"
+              formatted={formatWindMs(data.latest.windGusts)}
             />
             <ObsCard
               icon={<Thermometer className="w-4 h-4 text-red-500" />}
               label="Air Temp"
-              value={data.latest.airTemp?.toFixed(1)}
-              unit="°C"
+              formatted={formatTemp(data.latest.airTemp)}
             />
             <ObsCard
               icon={<Gauge className="w-4 h-4 text-gray-500" />}
               label="Pressure"
-              value={data.latest.pressure?.toFixed(0)}
-              unit="hPa"
+              formatted={formatPressure(data.latest.pressure)}
             />
           </div>
 
           {/* Wave Height History Chart */}
           <Card title="Recent Wave Height" subtitle={`Last ${data.observations.length} observations`}>
-            <BuoyWaveChart observations={data.observations} />
+            <BuoyWaveChart observations={data.observations} waveUnit={getWaveUnit()} />
           </Card>
 
           {/* Wind Speed History Chart */}
           <Card title="Recent Wind Speed" subtitle="Wind speed and gusts">
-            <BuoyWindChart observations={data.observations} />
+            <BuoyWindChart observations={data.observations} windUnit={getWindUnit()} />
           </Card>
 
           {/* Observations table */}
           <Card title="Observation History" subtitle={`Station ${data.stationId}`}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-2 font-medium text-gray-600">Time (UTC)</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-600">Wave (m)</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-600">Period (s)</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-600">Wind (m/s)</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-600">Gusts (m/s)</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-600">Air (°C)</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-600">Water (°C)</th>
-                    <th className="text-right py-2 px-2 font-medium text-gray-600">Press (hPa)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.observations.slice(0, 24).map((obs, i) => (
-                    <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-1.5 px-2 text-gray-700 whitespace-nowrap text-xs">
-                        {formatDateTime(obs.time, 'MMM d, HH:mm')}
-                      </td>
-                      <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.waveHeight?.toFixed(1) ?? '—'}</td>
-                      <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.dominantPeriod?.toFixed(0) ?? '—'}</td>
-                      <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.windSpeed?.toFixed(1) ?? '—'}</td>
-                      <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.windGusts?.toFixed(1) ?? '—'}</td>
-                      <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.airTemp?.toFixed(1) ?? '—'}</td>
-                      <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.waterTemp?.toFixed(1) ?? '—'}</td>
-                      <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.pressure?.toFixed(0) ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <BuoyTable
+              observations={data.observations}
+              formatWave={formatWave}
+              formatWindMs={formatWindMs}
+              formatTemp={formatTemp}
+              formatPressure={formatPressure}
+              waveUnit={getWaveUnit()}
+              windUnit={getWindUnit()}
+              tempUnit={getTempUnit()}
+            />
           </Card>
 
           <p className="text-xs text-gray-400 text-right">
@@ -178,25 +152,23 @@ const BuoysPage = () => {
   );
 };
 
-const ObsCard = ({ icon, label, value, unit }) => (
+const ObsCard = ({ icon, label, formatted }) => (
   <div className="bg-white rounded-lg border border-gray-200 p-3">
     <div className="flex items-center gap-1.5 mb-1">
       {icon}
       <p className="text-xs text-gray-500">{label}</p>
     </div>
-    <p className="text-lg font-semibold text-gray-900">
-      {value ?? 'N/A'} <span className="text-xs font-normal text-gray-500">{value ? unit : ''}</span>
-    </p>
+    <p className="text-lg font-semibold text-gray-900">{formatted}</p>
   </div>
 );
 
-const BuoyWaveChart = ({ observations }) => {
+const BuoyWaveChart = ({ observations, waveUnit = 'm' }) => {
   const reversed = [...observations].reverse();
   const chartData = {
     labels: reversed.map((o) => formatDateTime(o.time, 'HH:mm')),
     datasets: [
       {
-        label: 'Wave Height (m)',
+        label: `Wave Height (${waveUnit})`,
         data: reversed.map((o) => o.waveHeight),
         borderColor: '#3b82f6',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -212,11 +184,11 @@ const BuoyWaveChart = ({ observations }) => {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y?.toFixed(1) ?? 'N/A'} m` } },
+      tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.y?.toFixed(1) ?? 'N/A'} ${waveUnit}` } },
     },
     scales: {
       x: { ticks: { maxTicksLimit: 10, font: { size: 10 } }, grid: { display: false } },
-      y: { beginAtZero: true, title: { display: true, text: 'm' }, grid: { color: 'rgba(0,0,0,0.06)' } },
+      y: { beginAtZero: true, title: { display: true, text: waveUnit }, grid: { color: 'rgba(0,0,0,0.06)' } },
     },
   };
 
@@ -227,20 +199,20 @@ const BuoyWaveChart = ({ observations }) => {
   );
 };
 
-const BuoyWindChart = ({ observations }) => {
+const BuoyWindChart = ({ observations, windUnit = 'm/s' }) => {
   const reversed = [...observations].reverse();
   const chartData = {
     labels: reversed.map((o) => formatDateTime(o.time, 'HH:mm')),
     datasets: [
       {
-        label: 'Wind Speed (m/s)',
+        label: `Wind Speed (${windUnit})`,
         data: reversed.map((o) => o.windSpeed),
         borderColor: '#10b981',
         tension: 0.3,
         pointRadius: 2,
       },
       {
-        label: 'Gusts (m/s)',
+        label: `Gusts (${windUnit})`,
         data: reversed.map((o) => o.windGusts),
         borderColor: '#f59e0b',
         borderDash: [4, 4],
@@ -258,7 +230,7 @@ const BuoyWindChart = ({ observations }) => {
     },
     scales: {
       x: { ticks: { maxTicksLimit: 10, font: { size: 10 } }, grid: { display: false } },
-      y: { beginAtZero: true, title: { display: true, text: 'm/s' }, grid: { color: 'rgba(0,0,0,0.06)' } },
+      y: { beginAtZero: true, title: { display: true, text: windUnit }, grid: { color: 'rgba(0,0,0,0.06)' } },
     },
   };
 
@@ -268,5 +240,40 @@ const BuoyWindChart = ({ observations }) => {
     </div>
   );
 };
+
+const BuoyTable = ({ observations, formatWave, formatWindMs, formatTemp, formatPressure, waveUnit, windUnit, tempUnit }) => (
+  <div className="overflow-x-auto">
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="border-b border-gray-200">
+          <th className="text-left py-2 px-2 font-medium text-gray-600">Time (UTC)</th>
+          <th className="text-right py-2 px-2 font-medium text-gray-600">Wave ({waveUnit})</th>
+          <th className="text-right py-2 px-2 font-medium text-gray-600">Period (s)</th>
+          <th className="text-right py-2 px-2 font-medium text-gray-600">Wind ({windUnit})</th>
+          <th className="text-right py-2 px-2 font-medium text-gray-600">Gusts ({windUnit})</th>
+          <th className="text-right py-2 px-2 font-medium text-gray-600">Air ({tempUnit})</th>
+          <th className="text-right py-2 px-2 font-medium text-gray-600">Water ({tempUnit})</th>
+          <th className="text-right py-2 px-2 font-medium text-gray-600">Press (hPa)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {observations.slice(0, 24).map((obs, i) => (
+          <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+            <td className="py-1.5 px-2 text-gray-700 whitespace-nowrap text-xs">
+              {formatDateTime(obs.time, 'MMM d, HH:mm')}
+            </td>
+            <td className="py-1.5 px-2 text-right font-mono text-xs">{formatWave(obs.waveHeight).split(' ')[0] ?? '—'}</td>
+            <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.dominantPeriod?.toFixed(0) ?? '—'}</td>
+            <td className="py-1.5 px-2 text-right font-mono text-xs">{formatWindMs(obs.windSpeed).split(' ')[0] ?? '—'}</td>
+            <td className="py-1.5 px-2 text-right font-mono text-xs">{formatWindMs(obs.windGusts).split(' ')[0] ?? '—'}</td>
+            <td className="py-1.5 px-2 text-right font-mono text-xs">{formatTemp(obs.airTemp).split(' ')[0] ?? '—'}</td>
+            <td className="py-1.5 px-2 text-right font-mono text-xs">{formatTemp(obs.waterTemp).split(' ')[0] ?? '—'}</td>
+            <td className="py-1.5 px-2 text-right font-mono text-xs">{obs.pressure?.toFixed(0) ?? '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 
 export default BuoysPage;

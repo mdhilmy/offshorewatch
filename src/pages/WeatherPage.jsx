@@ -17,7 +17,7 @@ import { Cloud, RefreshCw, Table, BarChart3 } from 'lucide-react';
 const WeatherPage = () => {
   const { state } = useApp();
   const { settings } = useSettings();
-  const { formatWind, formatWave, formatTemp, formatPressure } = useUnits();
+  const { formatWind, formatWave, formatTemp, formatPressure, getWaveUnit, getWindUnit, getTempUnit } = useUnits();
   const region = REGIONS[state.currentRegion];
   const [lat, lon] = region?.center || [27.5, -90.5];
   const [view, setView] = useState('charts');
@@ -102,7 +102,16 @@ const WeatherPage = () => {
             </div>
           ) : (
             <Card title="Hourly Forecast Data" subtitle={`${data.hourly.length} hours of forecast data`}>
-              <ForecastTable hourlyData={data.hourly} />
+              <ForecastTable
+                hourlyData={data.hourly}
+                formatWave={formatWave}
+                formatWind={formatWind}
+                formatTemp={formatTemp}
+                formatPressure={formatPressure}
+                waveUnit={getWaveUnit()}
+                windUnit={getWindUnit()}
+                tempUnit={getTempUnit()}
+              />
             </Card>
           )}
 

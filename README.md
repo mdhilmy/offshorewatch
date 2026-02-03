@@ -4,6 +4,10 @@
 
 A comprehensive, browser-based weather and safety planning platform designed for petroleum engineers, offshore operations planners, HSE managers, marine coordinators, and logistics personnel operating in the global offshore oil and gas industry.
 
+**Currently in Improvement Phase**
+- APIs error handling
+- Data correctness
+
 ## Features
 
 - **Real-time Weather Forecasts**: 7-day marine and atmospheric forecasts using Open-Meteo API

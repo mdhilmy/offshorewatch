@@ -4,13 +4,29 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ROWS_PER_PAGE = 24;
 
-export const ForecastTable = ({ hourlyData }) => {
+export const ForecastTable = ({
+  hourlyData,
+  formatWave,
+  formatWind,
+  formatTemp,
+  formatPressure,
+  waveUnit = 'm',
+  windUnit = 'km/h',
+  tempUnit = '°C',
+}) => {
   const [page, setPage] = useState(0);
 
   if (!hourlyData?.length) return <p className="text-gray-500 text-sm">No data available</p>;
 
   const totalPages = Math.ceil(hourlyData.length / ROWS_PER_PAGE);
   const pageData = hourlyData.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
+
+  // Helper to extract numeric value from formatted string for table display
+  const getNumericPart = (fn, value) => {
+    if (!fn || value == null) return value?.toFixed?.(1) ?? '—';
+    const formatted = fn(value);
+    return formatted === 'N/A' ? '—' : formatted.split(' ')[0];
+  };
 
   return (
     <div>
@@ -19,11 +35,11 @@ export const ForecastTable = ({ hourlyData }) => {
           <thead>
             <tr className="border-b border-gray-200">
               <th className="text-left py-2 px-3 font-medium text-gray-600">Time</th>
-              <th className="text-right py-2 px-3 font-medium text-gray-600">Waves (m)</th>
-              <th className="text-right py-2 px-3 font-medium text-gray-600">Swell (m)</th>
-              <th className="text-right py-2 px-3 font-medium text-gray-600">Wind (m/s)</th>
-              <th className="text-right py-2 px-3 font-medium text-gray-600">Gusts (m/s)</th>
-              <th className="text-right py-2 px-3 font-medium text-gray-600">Temp (°C)</th>
+              <th className="text-right py-2 px-3 font-medium text-gray-600">Waves ({waveUnit})</th>
+              <th className="text-right py-2 px-3 font-medium text-gray-600">Swell ({waveUnit})</th>
+              <th className="text-right py-2 px-3 font-medium text-gray-600">Wind ({windUnit})</th>
+              <th className="text-right py-2 px-3 font-medium text-gray-600">Gusts ({windUnit})</th>
+              <th className="text-right py-2 px-3 font-medium text-gray-600">Temp ({tempUnit})</th>
               <th className="text-right py-2 px-3 font-medium text-gray-600">Pressure (hPa)</th>
             </tr>
           </thead>
@@ -35,20 +51,20 @@ export const ForecastTable = ({ hourlyData }) => {
                 </td>
                 <td className="py-2 px-3 text-right font-mono">
                   <span className={getWaveColor(row.waveHeight)}>
-                    {row.waveHeight?.toFixed(1) ?? '—'}
+                    {getNumericPart(formatWave, row.waveHeight)}
                   </span>
                 </td>
                 <td className="py-2 px-3 text-right font-mono">
-                  {row.swellHeight?.toFixed(1) ?? '—'}
+                  {getNumericPart(formatWave, row.swellHeight)}
                 </td>
                 <td className="py-2 px-3 text-right font-mono">
-                  {row.windSpeed?.toFixed(1) ?? '—'}
+                  {getNumericPart(formatWind, row.windSpeed)}
                 </td>
                 <td className="py-2 px-3 text-right font-mono">
-                  {row.windGusts?.toFixed(1) ?? '—'}
+                  {getNumericPart(formatWind, row.windGusts)}
                 </td>
                 <td className="py-2 px-3 text-right font-mono">
-                  {row.temperature?.toFixed(1) ?? '—'}
+                  {getNumericPart(formatTemp, row.temperature)}
                 </td>
                 <td className="py-2 px-3 text-right font-mono">
                   {row.pressure?.toFixed(0) ?? '—'}
